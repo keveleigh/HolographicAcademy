@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
+using UnityEngine;
 
 namespace Academy.HoloToolkit.Unity
 {
@@ -8,10 +11,10 @@ namespace Academy.HoloToolkit.Unity
     /// </summary>
     public class DirectionIndicator : MonoBehaviour
     {
-        [Tooltip("The Cursor object an on-cursor direction indicator will attach to.")]
+        [Tooltip("The Cursor object the direction indicator will be positioned around.")]
         public GameObject Cursor;
 
-        [Tooltip("Model to display on-cursor direction to the object this script is attached to.")]
+        [Tooltip("Model to display the direction to the object this script is attached to.")]
         public GameObject DirectionIndicatorObject;
 
         [Tooltip("Color to shade the direction indicator.")]
@@ -19,56 +22,71 @@ namespace Academy.HoloToolkit.Unity
 
         [Tooltip("Allowable percentage inside the holographic frame to continue to show a directional indicator.")]
         [Range(-0.3f, 0.3f)]
-        public float TitleSafeFactor = 0.1f;
+        public float VisibilitySafeFactor = 0.1f;
+
+        [Tooltip("Multiplier to decrease the distance from the cursor center an object is rendered to keep it in view.")]
+        [Range(0.1f, 1.0f)]
+        public float MetersFromCursor = 0.3f;
 
         // The default rotation of the cursor direction indicator.
         private Quaternion directionIndicatorDefaultRotation = Quaternion.identity;
 
         // Cache the MeshRenderer for the on-cursor indicator since it will be enabled and disabled frequently.
-        private MeshRenderer directionIndicatorRenderer;
+        private Renderer directionIndicatorRenderer;
+
+        // Cache the Material to prevent material leak.
+        private Material indicatorMaterial;
 
         // Check if the cursor direction indicator is visible.
         private bool isDirectionIndicatorVisible;
 
         public void Awake()
         {
+            if (Cursor == null)
+            {
+                Debug.LogError("Please include a GameObject for the cursor.");
+            }
+
             if (DirectionIndicatorObject == null)
             {
-                return;
+                Debug.LogError("Please include a GameObject for the Direction Indicator.");
             }
 
             // Instantiate the direction indicator.
             DirectionIndicatorObject = InstantiateDirectionIndicator(DirectionIndicatorObject);
-            directionIndicatorDefaultRotation = DirectionIndicatorObject.transform.rotation;
 
-            directionIndicatorRenderer = DirectionIndicatorObject.GetComponent<MeshRenderer>();
+            if (DirectionIndicatorObject == null)
+            {
+                Debug.LogError("Direction Indicator failed to instantiate.");
+            }
         }
 
         public void OnDestroy()
         {
-            GameObject.Destroy(DirectionIndicatorObject);
+            DestroyImmediate(indicatorMaterial);
+            Destroy(DirectionIndicatorObject);
         }
 
         private GameObject InstantiateDirectionIndicator(GameObject directionIndicator)
         {
-            GameObject indicator = Instantiate(directionIndicator);
-
-            MeshRenderer indicatorRenderer = indicator.GetComponent<MeshRenderer>();
-
-            if (indicatorRenderer == null)
+            if (directionIndicator == null)
             {
-                // The Direction Indicator must have a MeshRenderer so it can give visual feedback to the user which way to look.
-                // Add one if there wasn't one.
-                indicatorRenderer = indicator.AddComponent<MeshRenderer>();
+                return null;
             }
 
+            GameObject indicator = Instantiate(directionIndicator);
+
+            // Set local variables for the indicator.
+            directionIndicatorDefaultRotation = indicator.transform.rotation;
+            directionIndicatorRenderer = indicator.GetComponent<Renderer>();
+
             // Start with the indicator disabled.
-            indicatorRenderer.enabled = false;
+            directionIndicatorRenderer.enabled = false;
 
             // Remove any colliders and rigidbodies so the indicators do not interfere with Unity's physics system.
-            foreach (Collider collider in indicator.GetComponents<Collider>())
+            foreach (Collider indicatorCollider in indicator.GetComponents<Collider>())
             {
-                Destroy(collider);
+                Destroy(indicatorCollider);
             }
 
             foreach (Rigidbody rigidBody in indicator.GetComponents<Rigidbody>())
@@ -76,12 +94,9 @@ namespace Academy.HoloToolkit.Unity
                 Destroy(rigidBody);
             }
 
-            Material indicatorMaterial = indicatorRenderer.material;
+            indicatorMaterial = directionIndicatorRenderer.material;
             indicatorMaterial.color = DirectionIndicatorColor;
             indicatorMaterial.SetColor("_TintColor", DirectionIndicatorColor);
-
-            // Make this indicator a child of the targeted GameObject.
-            indicator.transform.SetParent(gameObject.transform);
 
             return indicator;
         }
@@ -119,20 +134,14 @@ namespace Academy.HoloToolkit.Unity
         {
             // This will return true if the target's mesh is within the Main Camera's view frustums.
             Vector3 targetViewportPosition = Camera.main.WorldToViewportPoint(gameObject.transform.position);
-            return (targetViewportPosition.x > TitleSafeFactor && targetViewportPosition.x < 1 - TitleSafeFactor &&
-                targetViewportPosition.y > TitleSafeFactor && targetViewportPosition.y < 1 - TitleSafeFactor &&
-                targetViewportPosition.z > 0);
+            return (targetViewportPosition.x > VisibilitySafeFactor && targetViewportPosition.x < 1 - VisibilitySafeFactor &&
+                    targetViewportPosition.y > VisibilitySafeFactor && targetViewportPosition.y < 1 - VisibilitySafeFactor &&
+                    targetViewportPosition.z > 0);
         }
 
-        private void GetDirectionIndicatorPositionAndRotation(
-            Vector3 camToObjectDirection,
-            out Vector3 position,
-            out Quaternion rotation)
+        private void GetDirectionIndicatorPositionAndRotation(Vector3 camToObjectDirection, out Vector3 position, out Quaternion rotation)
         {
             // Find position:
-            // Use this value to decrease the distance from the cursor center an object is rendered to keep it in view.
-            float metersFromCursor = 0.3f;
-
             // Save the cursor transform position in a variable.
             Vector3 origin = Cursor.transform.position;
 
@@ -148,12 +157,10 @@ namespace Academy.HoloToolkit.Unity
             }
 
             // The final position is translated from the center of the screen along this direction vector.
-            position = origin + cursorIndicatorDirection * metersFromCursor;
+            position = origin + cursorIndicatorDirection * MetersFromCursor;
 
             // Find the rotation from the facing direction to the target object.
-            rotation = Quaternion.LookRotation(
-                Camera.main.transform.forward,
-                cursorIndicatorDirection) * directionIndicatorDefaultRotation;
+            rotation = Quaternion.LookRotation(Camera.main.transform.forward, cursorIndicatorDirection) * directionIndicatorDefaultRotation;
         }
     }
 }

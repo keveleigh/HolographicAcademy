@@ -1,7 +1,15 @@
-﻿using UnityEngine;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
+using UnityEngine;
 
 namespace Academy.HoloToolkit.Unity
 {
+    /// <summary>
+    /// A Tagalong that stays at a fixed distance from the camera and always
+    /// seeks to have a part of itself in the view frustum of the camera.
+    /// </summary>
+    [RequireComponent(typeof(BoxCollider), typeof(Interpolator))]
     public class SimpleTagalong : MonoBehaviour
     {
         // Simple Tagalongs seek to stay at a fixed distance from the Camera.
@@ -35,24 +43,19 @@ namespace Academy.HoloToolkit.Unity
         protected const int frustumBottom = 2;
         protected const int frustumTop = 3;
 
-        virtual protected void Start()
+        protected virtual void Start()
         {
             // Make sure the Tagalong object has a BoxCollider.
             tagalongCollider = GetComponent<BoxCollider>();
-            if (!tagalongCollider)
-            {
-                // If we can't find one, disable the script.
-                enabled = false;
-            }
 
-            // Add an Interpolator component and set some default parameters for
-            // it. These parameters can be adjusted in Unity's Inspector.
-            interpolator = gameObject.AddComponent<Interpolator>();
+            // Get the Interpolator component and set some default parameters for
+            // it. These parameters can be adjusted in Unity's Inspector as well.
+            interpolator = gameObject.GetComponent<Interpolator>();
             interpolator.SmoothLerpToTarget = SmoothMotion;
             interpolator.SmoothPositionLerpRatio = SmoothingFactor;
         }
 
-        protected virtual void FixedUpdate()
+        protected virtual void Update()
         {
             // Retrieve the frustum planes from the camera.
             frustumPlanes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
@@ -93,15 +96,16 @@ namespace Academy.HoloToolkit.Unity
             // Aligned Bounding Box (AABB).
             bool needsToMove = !GeometryUtility.TestPlanesAABB(frustumPlanes, tagalongCollider.bounds);
 
-            // Calculate a default position where the Tagalong should go. In this
-            // case TagalongDistance from the camera along the gaze vector.
-            toPosition = Camera.main.transform.position + Camera.main.transform.forward * TagalongDistance;
-
             // If we already know we don't need to move, bail out early.
             if (!needsToMove)
             {
+                toPosition = fromPosition;
                 return false;
             }
+
+            // Calculate a default position where the Tagalong should go. In this
+            // case TagalongDistance from the camera along the gaze vector.
+            toPosition = Camera.main.transform.position + Camera.main.transform.forward * TagalongDistance;
 
             // Create a Ray and set it's origin to be the default toPosition that
             // was calculated above.

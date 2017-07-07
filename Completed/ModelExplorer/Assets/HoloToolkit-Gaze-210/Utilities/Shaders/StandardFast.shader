@@ -1,339 +1,355 @@
-//Faster version of the Unity Standard Shader
-//Forces compilation for shader model 5.0
-//Sets several defines to make perf/quality trade-offs that are more realistic for less beefy hardware
-//Based on the shader sources from 5.3
-//Merging should be relatively easy as none of the .cginc files need be touched
-//Supports stereo instancing
+// Faster version of the Unity Standard Shader.
+// Forces compilation for shader model 5.0.
+// Sets several defines to make perf/quality trade-offs that are more realistic for less beefy hardware.
+// Based on the shader sources from 5.4.
+// Merging should be relatively easy as none of the .cginc files need to be touched.
+// Supports stereo instancing.
 
 Shader "HoloToolkit/StandardFast"
 {
-	Properties
-	{
-		_Color("Color", Color) = (1,1,1,1)
-		_MainTex("Albedo", 2D) = "white" {}
-		
-		_Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
+    Properties
+    {
+        _Color("Color", Color) = (1,1,1,1)
+        _MainTex("Albedo", 2D) = "white" {}
 
-		_Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
-		[Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
-		_MetallicGlossMap("Metallic", 2D) = "white" {}
+        _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
-		_BumpScale("Scale", Float) = 1.0
-		_BumpMap("Normal Map", 2D) = "bump" {}
+        _Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
+        _GlossMapScale("Smoothness Scale", Range(0.0, 1.0)) = 1.0
+        [Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel("Smoothness texture channel", Float) = 0
 
-		_Parallax ("Height Scale", Range (0.005, 0.08)) = 0.02
-		_ParallaxMap ("Height Map", 2D) = "black" {}
+        [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
+        _MetallicGlossMap("Metallic", 2D) = "white" {}
 
-		_OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-		_OcclusionMap("Occlusion", 2D) = "white" {}
+        [ToggleOff] _SpecularHighlights("Specular Highlights", Float) = 1.0
+        [ToggleOff] _GlossyReflections("Glossy Reflections", Float) = 1.0
 
-		_EmissionColor("Color", Color) = (0,0,0)
-		_EmissionMap("Emission", 2D) = "white" {}
-		
-		_DetailMask("Detail Mask", 2D) = "white" {}
+        _BumpScale("Scale", Float) = 1.0
+        _BumpMap("Normal Map", 2D) = "bump" {}
 
-		_DetailAlbedoMap("Detail Albedo x2", 2D) = "grey" {}
-		_DetailNormalMapScale("Scale", Float) = 1.0
-		_DetailNormalMap("Normal Map", 2D) = "bump" {}
+        _Parallax("Height Scale", Range(0.005, 0.08)) = 0.02
+        _ParallaxMap("Height Map", 2D) = "black" {}
 
-		[Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
+        _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
+        _OcclusionMap("Occlusion", 2D) = "white" {}
 
+        _EmissionColor("Color", Color) = (0,0,0)
+        _EmissionMap("Emission", 2D) = "white" {}
 
-		// Blending state
-		[HideInInspector] _Mode ("__mode", Float) = 0.0
-		[HideInInspector] _SrcBlend ("__src", Float) = 1.0
-		[HideInInspector] _DstBlend ("__dst", Float) = 0.0
-		[HideInInspector] _ZWrite ("__zw", Float) = 1.0
-	}
+        _DetailMask("Detail Mask", 2D) = "white" {}
 
-	CGINCLUDE
-		//use lower quality BDRFs(bi-directional reflectance distribution functions)
-		#define UNITY_BRDF_PBS BRDF3_Unity_PBS	
-		#define UNITY_BRDF_PBS_LIGHTMAP_INDIRECT BRDF3_Unity_PBS
+        _DetailAlbedoMap("Detail Albedo x2", 2D) = "grey" {}
+        _DetailNormalMapScale("Scale", Float) = 1.0
+        _DetailNormalMap("Normal Map", 2D) = "bump" {}
 
-		//several other optimizations
-		//you may wish to re-enable box projection depending on your needs
-        #undef UNITY_SPECCUBE_BOX_PROJECTION
-		#define UNITY_SPECCUBE_BOX_PROJECTION 0
+        [Enum(UV0,0,UV1,1)] _UVSec("UV Set for secondary textures", Float) = 0
 
-        #undef UNITY_SPECCUBE_BLENDING
-        #define UNITY_SPECCUBE_BLENDING 0
+        // Blending state
+        [HideInInspector] _Mode("__mode", Float) = 0.0
+        [HideInInspector] _SrcBlend("__src", Float) = 1.0
+        [HideInInspector] _DstBlend("__dst", Float) = 0.0
+        [HideInInspector] _ZWrite("__zw", Float) = 1.0
+    }
 
-		#define UNITY_TANGENT_ORTHONORMALIZE 0		
-		
-		#define UNITY_SETUP_BRDF_INPUT MetallicSetup	
-	ENDCG
+    CGINCLUDE
+    // Use lower quality BDRFs (bi-directional reflectance distribution functions)
+    #define UNITY_BRDF_PBS BRDF3_Unity_PBS
+    #define UNITY_BRDF_PBS_LIGHTMAP_INDIRECT BRDF3_Unity_PBS
 
-	SubShader
-	{
-		Tags { "RenderType"="Opaque" "PerformanceChecks"="False" }
-		LOD 300
-	
+    // Several other optimizations
+    // You may wish to re-enable box projection depending on your needs
+    #undef UNITY_SPECCUBE_BOX_PROJECTION
+    #define UNITY_SPECCUBE_BOX_PROJECTION 0
 
-		// ------------------------------------------------------------------
-		//  Base forward pass (directional light, emission, lightmaps, ...)
-		Pass
-		{
-			Name "FORWARD" 
-			Tags { "LightMode" = "ForwardBase" }
+    #undef UNITY_SPECCUBE_BLENDING
+    #define UNITY_SPECCUBE_BLENDING 0
 
-			Blend [_SrcBlend] [_DstBlend]
-			ZWrite [_ZWrite]
+    #define UNITY_TANGENT_ORTHONORMALIZE 0
 
-			CGPROGRAM
-			//we only target the hololens (and the unity editor) so take advantage of shader model 5
-			#pragma target 5.0
-			#pragma only_renderers d3d11
-			
-			// -------------------------------------
-					
-			#pragma shader_feature _NORMALMAP
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP 
-			#pragma shader_feature ___ _DETAIL_MULX2
-			#pragma shader_feature _PARALLAXMAP
-			
-			#pragma multi_compile_fwdbase
-			#pragma multi_compile_fog
+    #define UNITY_SETUP_BRDF_INPUT MetallicSetup
+    ENDCG
 
-			#pragma vertex vertBase
-			#pragma fragment fragBase
-			#include "UnityStandardCoreForward.cginc"
+    SubShader
+    {
+        Tags { "RenderType" = "Opaque" "PerformanceChecks" = "False" }
+        LOD 300
 
-			ENDCG
-		}
-		// ------------------------------------------------------------------
-		//  Additive forward pass (one light per pass)
-		Pass
-		{
-			Name "FORWARD_DELTA"
-			Tags { "LightMode" = "ForwardAdd" }
-			Blend [_SrcBlend] One
-			Fog { Color (0,0,0,0) } // in additive pass fog should be black
-			ZWrite Off
-			ZTest LEqual
+        // ------------------------------------------------------------------
+        //  Base forward pass (directional light, emission, lightmaps, ...)
+        Pass
+        {
+            Name "FORWARD"
+            Tags { "LightMode" = "ForwardBase" }
 
-			CGPROGRAM
-			//we only target the hololens (and the unity editor) so take advantage of shader model 5
-			#pragma target 5.0
-			#pragma only_renderers d3d11
+            Blend[_SrcBlend][_DstBlend]
+            ZWrite[_ZWrite]
 
-			// -------------------------------------
+            CGPROGRAM
+            // We only target the HoloLens (and the Unity editor), so take advantage of shader model 5.
+            #pragma target 5.0
+            #pragma only_renderers d3d11
 
-			
-			#pragma shader_feature _NORMALMAP
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
-			#pragma shader_feature ___ _DETAIL_MULX2
-			#pragma shader_feature _PARALLAXMAP
-			
-			#pragma multi_compile_fwdadd_fullshadows
-			#pragma multi_compile_fog
+            // -------------------------------------
 
-			#pragma vertex vertAdd
-			#pragma fragment fragAdd
-			#include "UnityStandardCoreForward.cginc"
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature ___ _DETAIL_MULX2
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature _ _GLOSSYREFLECTIONS_OFF
+            #pragma shader_feature _PARALLAXMAP
 
-			ENDCG
-		}
-		// ------------------------------------------------------------------
-		//  Shadow rendering pass
-		Pass {
-			Name "ShadowCaster"
-			Tags { "LightMode" = "ShadowCaster" }
-			
-			ZWrite On ZTest LEqual
+            #pragma multi_compile_fwdbase
+            #pragma multi_compile_fog
 
-			CGPROGRAM
-			//we only target the hololens (and the unity editor) so take advantage of shader model 5
-			#pragma target 5.0
-			#pragma only_renderers d3d11
-			
-			// -------------------------------------
+            #pragma vertex vertBase
+            #pragma fragment fragBase
+            #include "UnityStandardCoreForward.cginc"
 
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  Additive forward pass (one light per pass)
+        Pass
+        {
+            Name "FORWARD_DELTA"
+            Tags { "LightMode" = "ForwardAdd" }
+            Blend[_SrcBlend] One
+            Fog { Color(0,0,0,0) } // in additive pass fog should be black
+            ZWrite Off
+            ZTest LEqual
 
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma multi_compile_shadowcaster
+            CGPROGRAM
+            // We only target the HoloLens (and the Unity editor), so take advantage of shader model 5.
+            #pragma target 5.0
+            #pragma only_renderers d3d11
 
-			#pragma vertex vertShadowCaster
-			#pragma fragment fragShadowCaster
+            // -------------------------------------
 
-			#include "UnityStandardShadow.cginc"
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature ___ _DETAIL_MULX2
+            #pragma shader_feature _PARALLAXMAP
 
-			ENDCG
-		}
-		// ------------------------------------------------------------------
-		//  Deferred pass
-		Pass
-		{
-			Name "DEFERRED"
-			Tags { "LightMode" = "Deferred" }
+            #pragma multi_compile_fwdadd_fullshadows
+            #pragma multi_compile_fog
 
-			CGPROGRAM
-			//we only target the hololens (and the unity editor) so take advantage of shader model 5
-			#pragma target 5.0
-			#pragma only_renderers d3d11
-			
+            #pragma vertex vertAdd
+            #pragma fragment fragAdd
+            #include "UnityStandardCoreForward.cginc"
 
-			// -------------------------------------
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  Shadow rendering pass
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
 
-			#pragma shader_feature _NORMALMAP
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
-			#pragma shader_feature ___ _DETAIL_MULX2
-			#pragma shader_feature _PARALLAXMAP
+            ZWrite On ZTest LEqual
 
-			#pragma multi_compile ___ UNITY_HDR_ON
-			#pragma multi_compile LIGHTMAP_OFF LIGHTMAP_ON
-			#pragma multi_compile DIRLIGHTMAP_OFF DIRLIGHTMAP_COMBINED DIRLIGHTMAP_SEPARATE
-			#pragma multi_compile DYNAMICLIGHTMAP_OFF DYNAMICLIGHTMAP_ON
-			
-			#pragma vertex vertDeferred
-			#pragma fragment fragDeferred
+            CGPROGRAM
+            // We only target the HoloLens (and the Unity editor), so take advantage of shader model 5.
+            #pragma target 5.0
+            #pragma only_renderers d3d11
 
-			#include "UnityStandardCore.cginc"
+            // -------------------------------------
 
-			ENDCG
-		}
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma multi_compile_shadowcaster
 
-		// ------------------------------------------------------------------
-		// Extracts information for lightmapping, GI (emission, albedo, ...)
-		// This pass it not used during regular rendering.
-		Pass
-		{
-			Name "META" 
-			Tags { "LightMode"="Meta" }
+            #pragma vertex vertShadowCaster
+            #pragma fragment fragShadowCaster
 
-			Cull Off
+            #include "UnityStandardShadow.cginc"
 
-			CGPROGRAM
-			#pragma vertex vert_meta
-			#pragma fragment frag_meta
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  Deferred pass
+        Pass
+        {
+            Name "DEFERRED"
+            Tags { "LightMode" = "Deferred" }
 
-			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
-			#pragma shader_feature ___ _DETAIL_MULX2
+            CGPROGRAM
+            // We only target the HoloLens (and the Unity editor), so take advantage of shader model 5.
+            #pragma target 5.0
+            #pragma only_renderers d3d11
 
-			#include "UnityStandardMeta.cginc"
-			ENDCG
-		}
-	}
+            // -------------------------------------
 
-	SubShader
-	{
-		Tags { "RenderType"="Opaque" "PerformanceChecks"="False" }
-		LOD 150
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature ___ _DETAIL_MULX2
+            #pragma shader_feature _PARALLAXMAP
 
-		// ------------------------------------------------------------------
-		//  Base forward pass (directional light, emission, lightmaps, ...)
-		Pass
-		{
-			Name "FORWARD" 
-			Tags { "LightMode" = "ForwardBase" }
+            #pragma multi_compile ___ UNITY_HDR_ON
+            #pragma multi_compile LIGHTMAP_OFF LIGHTMAP_ON
+            #pragma multi_compile DIRLIGHTMAP_OFF DIRLIGHTMAP_COMBINED DIRLIGHTMAP_SEPARATE
+            #pragma multi_compile DYNAMICLIGHTMAP_OFF DYNAMICLIGHTMAP_ON
 
-			Blend [_SrcBlend] [_DstBlend]
-			ZWrite [_ZWrite]
+            #pragma vertex vertDeferred
+            #pragma fragment fragDeferred
 
-			CGPROGRAM
-			#pragma target 2.0
-			
-			#pragma shader_feature _NORMALMAP
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _EMISSION 
-			#pragma shader_feature _METALLICGLOSSMAP 
-			#pragma shader_feature ___ _DETAIL_MULX2
-			// SM2.0: NOT SUPPORTED shader_feature _PARALLAXMAP
+            #include "UnityStandardCore.cginc"
 
-			#pragma skip_variants SHADOWS_SOFT DIRLIGHTMAP_COMBINED DIRLIGHTMAP_SEPARATE
+            ENDCG
+        }
 
-			#pragma multi_compile_fwdbase
-			#pragma multi_compile_fog
+        // ------------------------------------------------------------------
+        // Extracts information for lightmapping, GI (emission, albedo, ...)
+        // This pass it not used during regular rendering.
+        Pass
+        {
+            Name "META"
+            Tags { "LightMode" = "Meta" }
 
-			#pragma vertex vertBase
-			#pragma fragment fragBase
-			#include "UnityStandardCoreForward.cginc"
+            Cull Off
 
-			ENDCG
-		}
-		// ------------------------------------------------------------------
-		//  Additive forward pass (one light per pass)
-		Pass
-		{
-			Name "FORWARD_DELTA"
-			Tags { "LightMode" = "ForwardAdd" }
-			Blend [_SrcBlend] One
-			Fog { Color (0,0,0,0) } // in additive pass fog should be black
-			ZWrite Off
-			ZTest LEqual
-			
-			CGPROGRAM
-			#pragma target 2.0
+            CGPROGRAM
+            #pragma vertex vert_meta
+            #pragma fragment frag_meta
 
-			#pragma shader_feature _NORMALMAP
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
-			#pragma shader_feature ___ _DETAIL_MULX2
-			// SM2.0: NOT SUPPORTED shader_feature _PARALLAXMAP
-			#pragma skip_variants SHADOWS_SOFT
-			
-			#pragma multi_compile_fwdadd_fullshadows
-			#pragma multi_compile_fog
-			
-			#pragma vertex vertAdd
-			#pragma fragment fragAdd
-			#include "UnityStandardCoreForward.cginc"
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature ___ _DETAIL_MULX2
 
-			ENDCG
-		}
-		// ------------------------------------------------------------------
-		//  Shadow rendering pass
-		Pass {
-			Name "ShadowCaster"
-			Tags { "LightMode" = "ShadowCaster" }
-			
-			ZWrite On ZTest LEqual
+            #include "UnityStandardMeta.cginc"
+            ENDCG
+        }
+    }
 
-			CGPROGRAM
-			#pragma target 2.0
+    SubShader
+    {
+        Tags { "RenderType" = "Opaque" "PerformanceChecks" = "False" }
+        LOD 150
 
-			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma skip_variants SHADOWS_SOFT
-			#pragma multi_compile_shadowcaster
+        // ------------------------------------------------------------------
+        //  Base forward pass (directional light, emission, lightmaps, ...)
+        Pass
+        {
+            Name "FORWARD"
+            Tags { "LightMode" = "ForwardBase" }
 
-			#pragma vertex vertShadowCaster
-			#pragma fragment fragShadowCaster
+            Blend[_SrcBlend][_DstBlend]
+            ZWrite[_ZWrite]
 
-			#include "UnityStandardShadow.cginc"
+            CGPROGRAM
+            #pragma target 2.0
 
-			ENDCG
-		}
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature _ _GLOSSYREFLECTIONS_OFF
+            // SM2.0: NOT SUPPORTED shader_feature ___ _DETAIL_MULX2
+            // SM2.0: NOT SUPPORTED shader_feature _PARALLAXMAP
 
-		// ------------------------------------------------------------------
-		// Extracts information for lightmapping, GI (emission, albedo, ...)
-		// This pass it not used during regular rendering.
-		Pass
-		{
-			Name "META" 
-			Tags { "LightMode"="Meta" }
+            #pragma skip_variants SHADOWS_SOFT DIRLIGHTMAP_COMBINED DIRLIGHTMAP_SEPARATE
 
-			Cull Off
+            #pragma multi_compile_fwdbase
+            #pragma multi_compile_fog
 
-			CGPROGRAM
-			#pragma vertex vert_meta
-			#pragma fragment frag_meta
+            #pragma vertex vertBase
+            #pragma fragment fragBase
+            #include "UnityStandardCoreForward.cginc"
 
-			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
-			#pragma shader_feature ___ _DETAIL_MULX2
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  Additive forward pass (one light per pass)
+        Pass
+        {
+            Name "FORWARD_DELTA"
+            Tags { "LightMode" = "ForwardAdd" }
+            Blend[_SrcBlend] One
+            Fog { Color(0,0,0,0) } // in additive pass fog should be black
+            ZWrite Off
+            ZTest LEqual
 
-			#include "UnityStandardMeta.cginc"
-			ENDCG
-		}
-	}
+            CGPROGRAM
+            #pragma target 2.0
 
+            #pragma shader_feature _NORMALMAP
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature ___ _DETAIL_MULX2
+            // SM2.0: NOT SUPPORTED shader_feature _PARALLAXMAP
+            #pragma skip_variants SHADOWS_SOFT
 
-	FallBack "VertexLit"
-	CustomEditor "StandardShaderGUI"
+            #pragma multi_compile_fwdadd_fullshadows
+            #pragma multi_compile_fog
+
+            #pragma vertex vertAdd
+            #pragma fragment fragAdd
+            #include "UnityStandardCoreForward.cginc"
+
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  Shadow rendering pass
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+
+            ZWrite On ZTest LEqual
+
+            CGPROGRAM
+            #pragma target 2.0
+
+            #pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma skip_variants SHADOWS_SOFT
+            #pragma multi_compile_shadowcaster
+
+            #pragma vertex vertShadowCaster
+            #pragma fragment fragShadowCaster
+
+            #include "UnityStandardShadow.cginc"
+
+            ENDCG
+        }
+
+        // ------------------------------------------------------------------
+        // Extracts information for lightmapping, GI (emission, albedo, ...)
+        // This pass it not used during regular rendering.
+        Pass
+        {
+            Name "META"
+            Tags { "LightMode" = "Meta" }
+
+            Cull Off
+
+            CGPROGRAM
+            #pragma vertex vert_meta
+            #pragma fragment frag_meta
+
+            #pragma shader_feature _EMISSION
+            #pragma shader_feature _METALLICGLOSSMAP
+            #pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature ___ _DETAIL_MULX2
+
+            #include "UnityStandardMeta.cginc"
+            ENDCG
+        }
+    }
+
+    FallBack "VertexLit"
+    CustomEditor "StandardShaderGUI"
 }
