@@ -3,7 +3,7 @@
 
 using UnityEngine;
 
-namespace Academy.HoloToolkit.Unity
+namespace HoloToolkit.Unity
 {
     /// <summary>
     /// Sets global shader variables relating to near plane fade

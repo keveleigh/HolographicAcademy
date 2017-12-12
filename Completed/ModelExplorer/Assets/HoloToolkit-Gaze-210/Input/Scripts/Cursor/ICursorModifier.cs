@@ -3,10 +3,10 @@
 
 using UnityEngine;
 
-namespace Academy.HoloToolkit.Unity.InputModule
+namespace HoloToolkit.Unity.InputModule
 {
     /// <summary>
-    /// Cursor Modifier Interface that provides basic overrides for cursor behaviour.
+    /// Cursor Modifier Interface that provides basic overrides for cursor behavior.
     /// </summary>
     public interface ICursorModifier
     {

@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Academy.HoloToolkit.Unity
+namespace HoloToolkit.Unity
 {
     /// <summary>
     /// Extensions for the action class.

@@ -3,9 +3,9 @@
 
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Academy.HoloToolkit.Unity.InputModule;
+using HoloToolkit.Unity.InputModule;
 
-namespace Academy.HoloToolkit.Unity
+namespace HoloToolkit.Unity
 {
     public class HeadsetAdjustment : MonoBehaviour, IInputClickHandler, ISpeechHandler
     {
@@ -21,7 +21,7 @@ namespace Academy.HoloToolkit.Unity
             GotoNextScene();
         }
 
-        public void OnSpeechKeywordRecognized(SpeechKeywordRecognizedEventData eventData)
+        public void OnSpeechKeywordRecognized(SpeechEventData eventData)
         {
             GotoNextScene();
         }

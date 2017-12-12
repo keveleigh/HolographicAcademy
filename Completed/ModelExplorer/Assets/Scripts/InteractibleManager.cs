@@ -1,5 +1,5 @@
-﻿using Academy.HoloToolkit.Unity;
-using Academy.HoloToolkit.Unity.InputModule;
+﻿using HoloToolkit.Unity;
+using HoloToolkit.Unity.InputModule;
 using UnityEngine;
 
 /// <summary>

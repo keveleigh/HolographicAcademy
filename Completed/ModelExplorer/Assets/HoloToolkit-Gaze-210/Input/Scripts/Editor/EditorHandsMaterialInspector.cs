@@ -1,6 +1,6 @@
 ﻿using UnityEditor;
 
-namespace Academy.HoloToolkit.Unity
+namespace HoloToolkit.Unity
 {
     public class EditorHandsMaterialInspector : ShaderGUI
     {

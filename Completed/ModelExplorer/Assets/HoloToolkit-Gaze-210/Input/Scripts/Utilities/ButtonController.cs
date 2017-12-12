@@ -3,7 +3,7 @@
 
 using UnityEngine;
 
-namespace Academy.HoloToolkit.Unity.InputModule
+namespace HoloToolkit.Unity.InputModule
 {
 
     /// <summary>

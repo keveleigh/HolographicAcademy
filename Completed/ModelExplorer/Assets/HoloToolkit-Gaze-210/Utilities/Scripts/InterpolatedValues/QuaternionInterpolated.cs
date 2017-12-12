@@ -6,7 +6,7 @@
 using System;
 using UnityEngine;
 
-namespace Academy.HoloToolkit.Unity
+namespace HoloToolkit.Unity
 {
     /// <summary>
     /// Class to encapsulate an interpolating Quaternion property.

@@ -4,7 +4,7 @@
 using System;
 using UnityEngine;
 
-namespace Academy.HoloToolkit.Unity
+namespace HoloToolkit.Unity
 {
     /// <summary>
     /// Provides interpolation over float.
